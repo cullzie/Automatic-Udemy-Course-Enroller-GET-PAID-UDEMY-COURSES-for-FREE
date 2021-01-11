@@ -221,4 +221,22 @@ cython_debug/
 Pipfile
 Pipfile.lock
 
+
 settings.yaml
+
+poetry.lock
+
+# Editor specific
+.vscode
+
+# Cache files
+.course_cache
+
+# Ignore temporary test folder
+test_tmp/
+
+.idea/poetry.xml
+
+#ignore deepsource.toml
+
+.deepsource.toml

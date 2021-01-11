@@ -1,11 +1,14 @@
 import getpass
 import os.path
 from distutils.util import strtobool
-from typing import Dict
-from typing import List
+from typing import Dict, List
 
-from ruamel.yaml import dump
-from ruamel.yaml import YAML
+from ruamel.yaml import YAML, dump
+
+from core.logging import get_logger
+from core.utils import get_app_dir
+
+logger = get_logger()
 
 
 class Settings:
@@ -13,14 +16,15 @@ class Settings:
     Contains all logic related to the scripts settings
     """
 
-    def __init__(self):
+    def __init__(self, settings_path="settings.yaml"):
         self.email = None
         self.password = None
         self.zip_code = None
         self.languages = []
+        self.categories = []
 
-        self._settings_path = "settings.yaml"
-        self.is_ci_build = strtobool(os.environ.get("CI", "False"))
+        self._settings_path = os.path.join(get_app_dir(), settings_path)
+        self.is_ci_build = strtobool(os.environ.get("CI_TEST", "False"))
         self._init_settings()
 
     def _init_settings(self) -> None:
@@ -43,7 +47,7 @@ class Settings:
 
         :return:
         """
-        print("Loading CI settings")
+        logger.info("Loading CI settings")
         self.email = os.environ["UDEMY_EMAIL"]
         self.password = os.environ["UDEMY_PASSWORD"]
 
@@ -57,7 +61,7 @@ class Settings:
 
         settings = None
         if os.path.isfile(self._settings_path):
-            print("Loading existing settings")
+            logger.info("Loading existing settings")
             with open(self._settings_path) as f:
                 settings = yaml.load(f)
             udemy_settings = settings["udemy"]
@@ -65,6 +69,8 @@ class Settings:
             self.password = udemy_settings["password"]
             self.zip_code = udemy_settings.get("zipcode")
             self.languages = udemy_settings.get("languages")
+            self.categories = udemy_settings.get("categories")
+
         return settings
 
     def _generate_settings(self) -> None:
@@ -77,6 +83,7 @@ class Settings:
         self.password = self._get_password()
         self.zip_code = self._get_zip_code()
         self.languages = self._get_languages()
+        self.categories = self._get_categories()
 
     def _get_email(self) -> str:
         """
@@ -86,7 +93,7 @@ class Settings:
         """
         email = input("Please enter your udemy email address: ")
         if len(email) == 0:
-            print("You must provide your email")
+            logger.warning("You must provide your email")
             return self._get_email()
         return email
 
@@ -98,7 +105,7 @@ class Settings:
         """
         password = getpass.getpass(prompt="Please enter your udemy password: ")
         if len(password) == 0:
-            print("You must provide your password")
+            logger.warning("You must provide your password")
             return self._get_password()
         return password
 
@@ -109,12 +116,11 @@ class Settings:
 
         :return: The users udemy zip code
         """
-        zip_code = input(
-            "Please enter your zipcode (Not necessary in some regions): ")
+        zip_code = input("Please enter your zipcode (Not necessary in some regions): ")
         return zip_code
 
     @staticmethod
-    def _get_languages() -> List:
+    def _get_languages() -> List[str]:
         """
         Get input from user on the languages they want to get courses in
 
@@ -123,8 +129,23 @@ class Settings:
         languages = input(
             "Please enter your language preferences (comma separated list e.g. English,German): "
         )
-        return [lang.strip()
-                for lang in languages.split(",")] if languages else []
+        return [lang.strip() for lang in languages.split(",")] if languages else []
+
+    @staticmethod
+    def _get_categories() -> List[str]:
+        """Gets the categories the user wants.
+
+        :return: list of categories the user wants."""
+        categories = input(
+            "Please enter in a list of comma separated values of"
+            " the course categories you like, for example:\n"
+            "Development, Design\n> "
+        )
+        return (
+            [category.strip() for category in categories.split(",")]
+            if categories
+            else []
+        )
 
     def _save_settings(self) -> None:
         """
@@ -132,19 +153,19 @@ class Settings:
 
         :return:
         """
-        yaml_structure = dict()
-        save_settings = input(
-            "Do you want to save settings for future use (Y/N): ")
+        yaml_structure = {}
+        save_settings = input("Do you want to save settings for future use (Y/N): ")
         if save_settings.lower() == "y":
             yaml_structure["udemy"] = {
                 "email": str(self.email),
                 "password": str(self.password),
                 "zipcode": str(self.zip_code),
                 "languages": self.languages,
+                "categories": self.categories,
             }
 
             with open(self._settings_path, "w+") as f:
                 dump(yaml_structure, stream=f)
-            print(f"Saved your settings in {self._settings_path}")
+            logger.info(f"Saved your settings in {self._settings_path}")
         else:
-            print("Not saving your settings as requested")
+            logger.info("Not saving your settings as requested")
