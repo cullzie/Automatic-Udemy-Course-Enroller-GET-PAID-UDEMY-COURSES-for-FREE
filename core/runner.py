@@ -11,6 +11,9 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from core import CourseCache, ScraperManager, Settings, UdemyActions, exceptions
 from core.logging import get_logger
 
+from .logging import load_logging_config
+
+load_logging_config()
 logger = get_logger()
 
 

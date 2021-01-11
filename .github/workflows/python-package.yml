@@ -50,6 +50,12 @@ jobs:
     - name: Run unittests
       run: |
         poetry run pytest
+    - name:  Smoke test tutorialbar.com scraper
+      run: |
+        poetry run tests/smoke/scrapers/test_tutorialbar.py
+    - name: Smoke test comidoc.net scraper
+      run: |
+        poetry run tests/smoke/scrapers/test_comidoc.py
     - name: Make sure chrome crawler is working (Attempt to subscribe to 1 course)
       env:
         UDEMY_EMAIL: ${{ secrets.UDEMY_EMAIL }}
