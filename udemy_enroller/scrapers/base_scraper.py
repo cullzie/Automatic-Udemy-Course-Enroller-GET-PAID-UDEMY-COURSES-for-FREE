@@ -1,9 +1,10 @@
+import asyncio
 import datetime
 import logging
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import Optional
+from typing import List, Optional
 
 logger = logging.getLogger("udemy_enroller")
 
@@ -23,12 +24,17 @@ class BaseScraper(ABC):
         self.current_page = 0
 
     @abstractmethod
-    async def run(self):
-        return
+    async def run(self) -> List:
+        return []
 
     @abstractmethod
-    async def get_links(self):
-        return
+    async def get_links(self) -> List:
+        return []
+
+    @staticmethod
+    @abstractmethod
+    async def get_udemy_course_links(url: str) -> List:
+        return []
 
     @property
     def state(self):
@@ -116,8 +122,20 @@ class BaseScraper(ABC):
         :param url: The url to check the udemy coupon pattern for
         :return: The validated url or None
         """
-        url_pattern = r"^https:\/\/www.udemy.com.*couponCode=.*$"
+        url_pattern = r"^https:\/\/www\.udemy\.com.*couponCode=.*$"
         matching = re.match(url_pattern, url)
         if matching is not None:
             matching = matching.group()
         return matching
+
+    async def gather_udemy_course_links(self, courses: List[str]) -> List:
+        """
+        Async fetching of the udemy course links
+
+        :param list courses: A list of course links we want to fetch the udemy links for
+        :return: list of udemy links
+        """
+        all_links = list()
+        for links in await asyncio.gather(*map(self.get_udemy_course_links, courses)):
+            all_links.extend(links)
+        return all_links

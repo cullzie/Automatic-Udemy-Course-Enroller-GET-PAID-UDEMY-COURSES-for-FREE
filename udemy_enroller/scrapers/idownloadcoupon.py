@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from typing import List
+from urllib.parse import unquote
 
 from bs4 import BeautifulSoup
 
@@ -10,17 +11,16 @@ from udemy_enroller.scrapers.base_scraper import BaseScraper
 logger = logging.getLogger("udemy_enroller")
 
 
-class TutorialBarScraper(BaseScraper):
+class IDownloadCouponScraper(BaseScraper):
     """
     Contains any logic related to scraping of data from tutorialbar.com
     """
 
-    DOMAIN = "https://www.tutorialbar.com"
-    AD_DOMAINS = ("https://amzn", "https://bit.ly")
+    DOMAIN = "https://idownloadcoupon.com"
 
     def __init__(self, enabled, max_pages=None):
         super().__init__()
-        self.scraper_name = "tutorialbar"
+        self.scraper_name = "idownloadcoupon"
         if not enabled:
             self.set_state_disabled()
         self.last_page = None
@@ -37,7 +37,7 @@ class TutorialBarScraper(BaseScraper):
         self.max_pages_reached()
         return links
 
-    async def get_links(self):
+    async def get_links(self) -> List:
         """
         Scrape udemy links from tutorialbar.com
 
@@ -45,35 +45,18 @@ class TutorialBarScraper(BaseScraper):
         """
         self.current_page += 1
         course_links = await self.get_course_links(
-            f"{self.DOMAIN}/all-courses/page/{self.current_page}/"
+            f"{self.DOMAIN}/category/paid-now-free-udemy-promo-code/page/{self.current_page}/"
         )
 
         logger.info(
-            f"Page: {self.current_page} of {self.last_page} scraped from tutorialbar.com"
+            f"Page: {self.current_page} of {self.last_page} scraped from idownloadcoupon.com"
         )
         udemy_links = await self.gather_udemy_course_links(course_links)
-        links = self._filter_ad_domains(udemy_links)
 
-        for counter, course in enumerate(links):
-            logger.debug(f"Received Link {counter + 1} : {course}")
+        for counter, course in enumerate(udemy_links):
+            logger.info(f"Received Link {counter + 1} : {course}")
 
-        return links
-
-    def _filter_ad_domains(self, udemy_links) -> List:
-        """
-        Filter out any known ad domains from the links scraped
-
-        :param list udemy_links: List of urls to filter ad domains from
-        :return: A list of filtered urls
-        """
-        ad_links = set()
-        for link in udemy_links:
-            for ad_domain in self.AD_DOMAINS:
-                if link.startswith(ad_domain):
-                    ad_links.add(link)
-        if ad_links:
-            logger.info(f"Removing ad links from courses: {ad_links}")
-        return list(set(udemy_links) - ad_links)
+        return udemy_links
 
     async def get_course_links(self, url: str) -> List:
         """
@@ -86,13 +69,13 @@ class TutorialBarScraper(BaseScraper):
         if text is not None:
             soup = BeautifulSoup(text.decode("utf-8"), "html.parser")
 
-            links = soup.find_all("h3")
+            links = soup.find_all("h2")
             course_links = [link.find("a").get("href") for link in links]
 
-            self.last_page = (
-                soup.find("li", class_="next_paginate_link")
+            self.last_page = int(
+                soup.find("a", class_="next page-numbers")
                 .find_previous_sibling()
-                .text
+                .text.replace(",", "")
             )
 
             return course_links
@@ -109,8 +92,28 @@ class TutorialBarScraper(BaseScraper):
         text = await get(url)
         if text is not None:
             soup = BeautifulSoup(text.decode("utf-8"), "html.parser")
-            udemy_link = (
-                soup.find("span", class_="rh_button_wrapper").find("a").get("href")
+            link = soup.find("a", class_="coupon-code-link btn promotion") or soup.find(
+                "a", string="Enroll Now"
             )
-            links.append(udemy_link)
-        return links
+            udemy_link = link.get("href") if link is not None else None
+            if udemy_link is not None:
+                udemy_url = "https://www.udemy.com"
+                if not udemy_link.startswith(udemy_url):
+                    links.append(
+                        f"{udemy_url}{unquote(udemy_link).split(udemy_url)[1]}"
+                    )
+            else:
+                for link_element in soup.find_all(
+                    "div",
+                    class_="public-DraftStyleDefault-block public-DraftStyleDefault-ltr",
+                ):
+                    if link_element.find("a"):
+                        links.append((link_element.find("a").get("href")))
+
+            return links
+
+
+if __name__ == "__main__":
+    idcs = IDownloadCouponScraper(enabled=True, max_pages=5)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(idcs.run())

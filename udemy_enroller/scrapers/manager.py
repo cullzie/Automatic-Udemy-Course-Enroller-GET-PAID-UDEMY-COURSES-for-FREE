@@ -4,12 +4,18 @@ from typing import List
 
 from udemy_enroller.scrapers.coursevania import CoursevaniaScraper
 from udemy_enroller.scrapers.discudemy import DiscUdemyScraper
+from udemy_enroller.scrapers.idownloadcoupon import IDownloadCouponScraper
 from udemy_enroller.scrapers.tutorialbar import TutorialBarScraper
 
 
 class ScraperManager:
     def __init__(
-        self, tutorialbar_enabled, discudemy_enabled, coursevania_enabled, max_pages
+        self,
+        tutorialbar_enabled,
+        discudemy_enabled,
+        coursevania_enabled,
+        idownloadcoupon_enabled,
+        max_pages,
     ):
         self.tutorialbar_scraper = TutorialBarScraper(
             tutorialbar_enabled, max_pages=max_pages
@@ -20,10 +26,14 @@ class ScraperManager:
         self.coursevania_scraper = CoursevaniaScraper(
             coursevania_enabled, max_pages=max_pages
         )
+        self.idownloadcoupon_scraper = IDownloadCouponScraper(
+            idownloadcoupon_enabled, max_pages=max_pages
+        )
         self._scrapers = (
             self.tutorialbar_scraper,
             self.discudemy_scraper,
             self.coursevania_scraper,
+            self.idownloadcoupon_scraper,
         )
 
     async def run(self) -> List:

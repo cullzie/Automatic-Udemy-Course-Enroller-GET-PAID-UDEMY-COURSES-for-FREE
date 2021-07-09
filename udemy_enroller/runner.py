@@ -58,6 +58,7 @@ def redeem_courses(
     tutorialbar_enabled: bool,
     discudemy_enabled: bool,
     coursevania_enabled: bool,
+    idownloadcoupon_enabled: bool,
     max_pages: Union[int, None],
 ) -> None:
     """
@@ -67,12 +68,17 @@ def redeem_courses(
     :param bool tutorialbar_enabled: Boolean signifying if tutorialbar scraper should run
     :param bool discudemy_enabled: Boolean signifying if discudemy scraper should run
     :param bool coursevania_enabled: Boolean signifying if coursevania scraper should run
+    :param bool idownloadcoupon_enabled: Boolean signifying if idownloadcoupon scraper should run
     :param int max_pages: Max pages to scrape from sites (if pagination exists)
     :return:
     """
     try:
         scrapers = ScraperManager(
-            tutorialbar_enabled, discudemy_enabled, coursevania_enabled, max_pages
+            tutorialbar_enabled,
+            discudemy_enabled,
+            coursevania_enabled,
+            idownloadcoupon_enabled,
+            max_pages,
         )
         _redeem_courses(settings, scrapers)
     except Exception as e:

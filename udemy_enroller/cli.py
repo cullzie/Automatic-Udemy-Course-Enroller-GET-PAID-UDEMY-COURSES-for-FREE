@@ -26,22 +26,39 @@ def determine_if_scraper_enabled(
     tutorialbar_enabled: bool,
     discudemy_enabled: bool,
     coursevania_enabled: bool,
-) -> Tuple[bool, bool, bool]:
+    idownloadcoupon_enabled: bool,
+) -> Tuple[bool, bool, bool, bool]:
     """
     Determine what scrapers should be enabled and disabled
 
     :return: tuple containing boolean of what scrapers should run
     """
-    if not tutorialbar_enabled and not discudemy_enabled and not coursevania_enabled:
+    if (
+        not tutorialbar_enabled
+        and not discudemy_enabled
+        and not coursevania_enabled
+        and not idownloadcoupon_enabled
+    ):
         # Set all to True
-        tutorialbar_enabled, discudemy_enabled, coursevania_enabled = True, True, True
-    return tutorialbar_enabled, discudemy_enabled, coursevania_enabled
+        (
+            tutorialbar_enabled,
+            discudemy_enabled,
+            coursevania_enabled,
+            idownloadcoupon_enabled,
+        ) = (True, True, True, True)
+    return (
+        tutorialbar_enabled,
+        discudemy_enabled,
+        coursevania_enabled,
+        idownloadcoupon_enabled,
+    )
 
 
 def run(
     tutorialbar_enabled: bool,
     discudemy_enabled: bool,
     coursevania_enabled: bool,
+    idownloadcoupon_enabled: bool,
     max_pages: Union[int, None],
     delete_settings: bool,
 ):
@@ -51,13 +68,19 @@ def run(
     :param bool tutorialbar_enabled:
     :param bool discudemy_enabled:
     :param bool coursevania_enabled:
+    :param bool idownloadcoupon_enabled:
     :param int max_pages: Max pages to scrape from sites (if pagination exists)
     :param bool delete_settings: Determines if we should delete old settings file
     :return:
     """
     settings = Settings(delete_settings)
     redeem_courses(
-        settings, tutorialbar_enabled, discudemy_enabled, coursevania_enabled, max_pages
+        settings,
+        tutorialbar_enabled,
+        discudemy_enabled,
+        coursevania_enabled,
+        idownloadcoupon_enabled,
+        max_pages,
     )
 
 
@@ -86,6 +109,12 @@ def parse_args() -> Namespace:
         action="store_true",
         default=False,
         help="Run coursevania scraper",
+    )
+    parser.add_argument(
+        "--idownloadcoupon",
+        action="store_true",
+        default=False,
+        help="Run idownloadcoupon scraper",
     )
     parser.add_argument(
         "--max-pages",
@@ -119,13 +148,15 @@ def main():
             tutorialbar_enabled,
             discudemy_enabled,
             coursevania_enabled,
+            idownloadcoupon_enabled,
         ) = determine_if_scraper_enabled(
-            args.tutorialbar, args.discudemy, args.coursevania
+            args.tutorialbar, args.discudemy, args.coursevania, args.idownloadcoupon
         )
         run(
             tutorialbar_enabled,
             discudemy_enabled,
             coursevania_enabled,
+            idownloadcoupon_enabled,
             args.max_pages,
             args.delete_settings,
         )
